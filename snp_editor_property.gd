@@ -1,12 +1,21 @@
 @tool
 extends EditorProperty
 
+## Custom inspector UI for assigning a scene file and selecting a node path within it.
+## Manages resource validation, caching, and the dedicated node tree selection dialog.
+
+const FallbackSNP = preload("uid://donjpkp7jyijj")
+
 static var global_class_cache: Dictionary = {}
 static var global_icon_cache: Dictionary = {}
 
+## The expected node class type used to filter the selection tree.
 var forced_allowed_class: String = "Node"
+## Indicates if the forced class is a native Godot class.
 var is_builtin_class: bool = true
+## Reference to the script of the allowed class if it is custom.
 var custom_allowed_script: Script = null
+## The icon representing the allowed class.
 var custom_icon: Texture2D = null
 
 var _cached_scene_path: String = ""
@@ -164,7 +173,7 @@ func _apply_theme_elements() -> void:
 	main_btn.add_theme_stylebox_override("focus", dark_stylebox)
 	main_btn.add_theme_stylebox_override("pressed", dark_stylebox)
 
-	allowed_class_lbl.text = "Any" if forced_allowed_class == "Node" else forced_allowed_class
+	allowed_class_lbl.text = forced_allowed_class
 	allowed_icon.texture = _get_class_icon(forced_allowed_class)
 
 func _get_class_icon(class_name_str: String) -> Texture2D:
@@ -174,7 +183,7 @@ func _get_class_icon(class_name_str: String) -> Texture2D:
 		return custom_icon
 	return get_theme_icon("Node", "EditorIcons")
 
-func _get_actual_scene_path(res: SceneNodePath) -> String:
+func _get_actual_scene_path(res: Variant) -> String:
 	if res.scene_path.begins_with("uid://"):
 		var id: int = ResourceUID.text_to_id(res.scene_path)
 		if ResourceUID.has_id(id):
@@ -182,7 +191,7 @@ func _get_actual_scene_path(res: SceneNodePath) -> String:
 	return res.scene_path
 
 func _update_property() -> void:
-	var res: SceneNodePath = get_edited_object()[get_edited_property()]
+	var res: Variant = get_edited_object()[get_edited_property()]
 	main_btn.remove_theme_color_override("font_color")
 	
 	if not res or res.scene_path.is_empty():
@@ -203,10 +212,10 @@ func _update_property() -> void:
 
 	_update_cache_and_validate(real_path, res, current_mod_time)
 
-func _is_cache_valid(res: SceneNodePath, current_mod_time: int) -> bool:
+func _is_cache_valid(res: Variant, current_mod_time: int) -> bool:
 	return res.scene_path == _cached_scene_path and res.node_path == _cached_node_path and current_mod_time == _cached_mod_time
 
-func _update_cache_and_validate(real_path: String, res: SceneNodePath, current_mod_time: int) -> void:
+func _update_cache_and_validate(real_path: String, res: Variant, current_mod_time: int) -> void:
 	var is_broken: bool = true
 	var dynamic_class: String = forced_allowed_class
 
@@ -244,16 +253,31 @@ func _apply_ui_state(is_broken: bool, is_assigned: bool, display_text: String, d
 	else:
 		main_btn.icon = _get_class_icon(dynamic_class)
 
-func _get_or_create_resource() -> SceneNodePath:
-	var res: SceneNodePath = get_edited_object()[get_edited_property()]
-	return res if res else SceneNodePath.new()
+func _get_or_create_resource() -> Variant:
+	var current_res = get_edited_object()[get_edited_property()]
+	if current_res:
+		return current_res
+
+	var target_class: String = ProjectSettings.get_setting("scene_node_path/custom_class_name", "SceneNodePath")
+
+	for c in ProjectSettings.get_global_class_list():
+		if c.get("class") == target_class:
+			var path := c.get("path")
+			var instance = load(path).new()
+			if instance is Resource:
+				return instance
+			else:
+				push_warning("%s addon: Found global %s class at `%s`, but it extends Node instead of Resource. Using fallback." % [target_class, target_class, path])
+				break
+
+	return FallbackSNP.new()
 
 func _show_file_dialog_from_node_dialog() -> void:
 	node_dialog.hide()
 	file_dialog.popup_file_dialog()
 
 func _on_main_button_pressed() -> void:
-	var res: SceneNodePath = _get_or_create_resource()
+	var res: Variant = _get_or_create_resource()
 	var real_path: String = _get_actual_scene_path(res)
 	
 	if real_path.is_empty() or not ResourceLoader.exists(real_path):
@@ -271,7 +295,7 @@ func _on_menu_id_pressed(id: int) -> void:
 		4: emit_changed(get_edited_property(), null)
 
 func _copy_to_clipboard(use_uid: bool) -> void:
-	var res: SceneNodePath = get_edited_object()[get_edited_property()]
+	var res: Variant = get_edited_object()[get_edited_property()]
 	if not res:
 		return
 		
@@ -287,7 +311,7 @@ func _copy_to_clipboard(use_uid: bool) -> void:
 	DisplayServer.clipboard_set("%s::%s" % [path_to_copy, res.node_path])
 
 func _on_file_selected(path: String) -> void:
-	var res: SceneNodePath = _get_or_create_resource()
+	var res: Variant = _get_or_create_resource()
 	var uid: int = ResourceLoader.get_resource_uid(path)
 	
 	res.scene_path = ResourceUID.id_to_text(uid) if uid != ResourceUID.INVALID_ID else path
@@ -304,8 +328,8 @@ func _on_node_selected() -> void:
 	if not selected:
 		return
 		
-	var res: SceneNodePath = _get_or_create_resource()
-	var meta = selected.get_metadata(0) 
+	var res: Variant = _get_or_create_resource()
+	var meta = selected.get_metadata(0)
 	
 	if typeof(meta) == TYPE_DICTIONARY:
 		res.node_path = meta.get("path", "")

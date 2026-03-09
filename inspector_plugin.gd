@@ -1,14 +1,9 @@
 extends EditorInspectorPlugin
 
-# ~~ Special cases ~~
-# @export_custom(0, "SceneNodePath:CharacterBody2D")
-# var remote_character: SceneNodePath
-#
-# @export_custom(PROPERTY_HINT_ARRAY_TYPE, "24/17:SceneNodePath:Sprite2D")
-# var remote_sprites: Array[SceneNodePath]
+## Parses the editor inspector to inject the custom Scene Node Path editor.
+## Targets properties matching the class name defined in the project settings.
 
-const SceneNodePathEditor = preload("uid://bbb777txx33hk")
-
+const SceneNodePathEditorProperty = preload("uid://bbb777txx33hk")
 
 func _can_handle(object: Object) -> bool:
 	return true
@@ -17,7 +12,9 @@ func _parse_property(object: Object, type: Variant.Type, name: String, hint_type
 	if type != TYPE_OBJECT:
 		return false
 	
-	if not "SceneNodePath" in hint_string:
+	var target_class: String = ProjectSettings.get_setting("scene_node_path/custom_class_name", "SceneNodePath")
+	
+	if not target_class in hint_string:
 		return false
 	
 	var allowed_class: String = "Node"
@@ -25,10 +22,10 @@ func _parse_property(object: Object, type: Variant.Type, name: String, hint_type
 	if ":" in hint_string:
 		var parts = hint_string.split(":")
 		var potential_type = parts[-1].strip_edges()
-		if potential_type != "SceneNodePath":
+		if potential_type != target_class:
 			allowed_class = potential_type
 	
-	var editor = SceneNodePathEditor.new()
+	var editor = SceneNodePathEditorProperty.new()
 	editor.forced_allowed_class = allowed_class
 	add_property_editor(name, editor)
 	return true
