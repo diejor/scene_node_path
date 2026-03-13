@@ -1,36 +1,74 @@
 @tool
 extends EditorPlugin
 
-## Main entry point for the Scene Node Path plugin.
-## Registers the custom inspector property and initializes project settings.
-
-var inspector_plugin: EditorInspectorPlugin
 const InspectorPlugin = preload("uid://di5tdm30ixtee")
 
-const SETTING_NAME = "scene_node_path/custom_class_name"
+var inspector_plugin: EditorInspectorPlugin
+var context_menu_plugin: SceneNodeContextMenu
 
 func _enter_tree() -> void:
-	_setup_project_setting()
+	add_inspector_plugin(InspectorPlugin.new())
 	
-	inspector_plugin = InspectorPlugin.new()
-	add_inspector_plugin(inspector_plugin)
+	context_menu_plugin = SceneNodeContextMenu.new()
+	add_context_menu_plugin(EditorContextMenuPlugin.CONTEXT_SLOT_SCENE_TREE, context_menu_plugin)
 
 func _exit_tree() -> void:
 	if inspector_plugin:
 		remove_inspector_plugin(inspector_plugin)
+		
+	if context_menu_plugin:
+		remove_context_menu_plugin(context_menu_plugin)
 
-## Registers the custom class name setting in the Project Settings if it doesn't exist.
-func _setup_project_setting() -> void:
-	if not ProjectSettings.has_setting(SETTING_NAME):
-		ProjectSettings.set_setting(SETTING_NAME, "SceneNodePath")
 
-	ProjectSettings.set_initial_value(SETTING_NAME, "SceneNodePath")
+# ==========================================
+# The Native Context Menu Integration
+# ==========================================
+
+class SceneNodeContextMenu extends EditorContextMenuPlugin:
 	
-	var property_info: Dictionary = {
-		"name": SETTING_NAME,
-		"type": TYPE_STRING,
-		"hint": PROPERTY_HINT_NONE,
-		"hint_string": ""
-	}
+	var uid_icon := EditorInterface.get_editor_theme().get_icon("UID", "EditorIcons")
+	var npath_icon := EditorInterface.get_editor_theme().get_icon("NodePath", "EditorIcons")
 	
-	ProjectSettings.add_property_info(property_info)
+	func _popup_menu(paths: PackedStringArray) -> void:
+		var selected_nodes: Array[Node] = EditorInterface.get_selection().get_selected_nodes()
+		
+		if selected_nodes.size() == 1:
+			add_context_menu_item("Copy Scene Node Path", _copy_uid, uid_icon)
+			add_context_menu_item("Copy Scene Node Path ", _copy_abs, npath_icon)
+			
+	func _copy_uid(paths: PackedStringArray) -> void:
+		_process_copy(true)
+		
+	func _copy_abs(paths: PackedStringArray) -> void:
+		_process_copy(false)
+		
+	func _process_copy(use_uid: bool) -> void:
+		var selected_nodes: Array[Node] = EditorInterface.get_selection().get_selected_nodes()
+		if selected_nodes.is_empty():
+			return
+			
+		var target_node: Node = selected_nodes[0]
+		var edited_scene_root: Node = EditorInterface.get_edited_scene_root()
+		
+		if not edited_scene_root:
+			push_warning("SceneNodePath: Cannot copy path. No scene is currently open.")
+			return
+			
+		var scene_file: String = edited_scene_root.scene_file_path
+		if scene_file.is_empty():
+			push_warning("SceneNodePath: Cannot copy path. Please save the scene first.")
+			return
+			
+		var node_path_str: String
+		if target_node.unique_name_in_owner:
+			node_path_str = "%" + target_node.name
+		else:
+			node_path_str = str(edited_scene_root.get_path_to(target_node))
+			
+		if use_uid:
+			var uid: int = ResourceLoader.get_resource_uid(scene_file)
+			if uid != ResourceUID.INVALID_ID:
+				scene_file = ResourceUID.id_to_text(uid)
+				
+		var final_string: String = "%s::%s" % [scene_file, node_path_str]
+		DisplayServer.clipboard_set(final_string)
