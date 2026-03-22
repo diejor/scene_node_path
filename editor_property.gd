@@ -1,8 +1,6 @@
 @tool
 extends EditorProperty
 
-## Custom inspector UI for assigning a scene file and selecting a node path within it.
-
 const PickerScript = preload("uid://bi68kvs2if4hr")
 
 static var global_class_cache: Dictionary = {}
@@ -91,20 +89,22 @@ func _update_property() -> void:
 	main_btn.remove_theme_color_override("font_color")
 	
 	if not res or res.scene_path.is_empty():
+		if res and "_editor_property_warnings" in res:
+			res._editor_property_warnings = "Scene path is not assigned."
 		_apply_ui_state(false, false, "Assign Scene...", "Node")
 		return
 
 	var real_path: String = _get_actual_scene_path(res.scene_path)
-	
 	var scene_name: String = real_path.get_file().get_basename()
 	
 	if res.node_path.is_empty():
+		if "_editor_property_warnings" in res:
+			res._editor_property_warnings = "Node path is not assigned."
 		_apply_ui_state(true, false, "%s::(Missing Node!)" % scene_name, "Node")
 		return
 
 	var current_mod_time: int = FileAccess.get_modified_time(real_path)
 	if _is_cache_valid(res, current_mod_time):
-		# Format the custom string here
 		var display_text: String = "%s::%s" % [scene_name, res.node_path]
 		if _cached_is_broken:
 			display_text += " (Broken!)"
@@ -120,8 +120,11 @@ func _is_cache_valid(res: Variant, current_mod_time: int) -> bool:
 func _update_cache_and_validate(real_path: String, res: Variant, current_mod_time: int) -> void:
 	var is_broken: bool = true
 	var dynamic_class: String = forced_allowed_class
+	var warning_msg: String = ""
 
-	if ResourceLoader.exists(real_path):
+	if not ResourceLoader.exists(real_path):
+		warning_msg = "Scene file does not exist at path: %s" % real_path
+	else:
 		var packed: PackedScene = load(real_path)
 		if packed:
 			var temp_instance: Node = packed.instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE)
@@ -130,7 +133,15 @@ func _update_cache_and_validate(real_path: String, res: Variant, current_mod_tim
 				if target_node:
 					is_broken = false
 					dynamic_class = target_node.get_class()
+					warning_msg = ""
+				else:
+					warning_msg = "Node '%s' does not exist in the referenced scene." % res.node_path
 				temp_instance.free()
+		else:
+			warning_msg = "Failed to load PackedScene."
+
+	if "_editor_property_warnings" in res:
+		res._editor_property_warnings = warning_msg
 
 	_cached_scene_path = res.scene_path
 	_cached_node_path = res.node_path
@@ -181,7 +192,6 @@ func _on_main_button_pressed() -> void:
 func _on_path_selected(scene_path: String, node_path: String) -> void:
 	var res: Variant = _get_or_create_resource()
 	
-	# Enforce UID constraint when assigned via the Inspector
 	var final_scene_path: String = scene_path
 	if final_scene_path.begins_with("res://") and ResourceLoader.exists(final_scene_path):
 		var uid: int = ResourceLoader.get_resource_uid(final_scene_path)
@@ -195,8 +205,8 @@ func _on_path_selected(scene_path: String, node_path: String) -> void:
 func _on_menu_id_pressed(id: int) -> void:
 	match id:
 		0: picker_dialog.file_dialog.popup_file_dialog()
-		1: _copy_to_clipboard(false)
-		2: _copy_to_clipboard(true)
+		1: _copy_to_clipboard(true)
+		2: _copy_to_clipboard(false)
 		4: emit_changed(get_edited_property(), null)
 
 func _copy_to_clipboard(use_uid: bool) -> void:
