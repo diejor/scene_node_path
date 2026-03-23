@@ -172,7 +172,7 @@ func test_instantiate_and_manual_attachment() -> void:
 		assert_that(target).override_failure_message("%s: result.node is null." % lang).is_not_null()
 		
 		# Manual attachment
-		var parent := auto_free(Node.new())
+		var parent = auto_free(Node.new())
 		parent.add_child(root)
 		
 		assert_that(root.get_parent()).is_equal(parent)

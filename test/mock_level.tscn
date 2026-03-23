@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cx70mn2ywq126"]
 
-[ext_resource type="PackedScene" uid="uid://cskn5w06l6wjy" path="res://addons/networked/addons/scene_node_path/tests/mock_player.tscn" id="1_o0jtm"]
+[ext_resource type="PackedScene" uid="uid://cskn5w06l6wjy" path="res://test/mock_player.tscn" id="1_o0jtm"]
 
 [node name="Level" type="Node2D" unique_id=1222905443]
 
