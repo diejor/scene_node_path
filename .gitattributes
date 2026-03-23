@@ -1,13 +1,7 @@
-# Normalize EOL for all files that Git considers text files.
 * text=auto eol=lf
 
-# --- Asset Library / ZIP Export rules ---
-# We use an allowlist approach: ignore everything except the addon folder.
-
-# 1. Ignore everything by default
 * export-ignore
 
-# 2. Re-allow the addon folder and its contents
 addons/ -export-ignore
 addons/scene_node_path/ -export-ignore
 addons/scene_node_path/** -export-ignore
