@@ -1,22 +1,13 @@
 # Normalize EOL for all files that Git considers text files.
 * text=auto eol=lf
 
-# Exclude dev-only files from ZIP exports (Asset Library, etc.)
-.github/ export-ignore
-addons/gdUnit4/ export-ignore
-.godot/ export-ignore
-project.godot export-ignore
-scene_node_path.csproj export-ignore
-scene_node_path.sln export-ignore
-scene_node_path.gif export-ignore
-get_version.py export-ignore
-version.json export-ignore
-.editorconfig export-ignore
-icon.svg.import export-ignore
-icon.svg export-ignore
-README.md export-ignore
-LICENSE export-ignore
-.jj/ export-ignore
-.gitignore export-ignore
-.gitattributes export-ignore
-# Note: Keep the LICENSE and README *inside* the addon folder if you want them in the download!
+# --- Asset Library / ZIP Export rules ---
+# We use an allowlist approach: ignore everything except the addon folder.
+
+# 1. Ignore everything by default
+* export-ignore
+
+# 2. Re-allow the addon folder and its contents
+addons/ -export-ignore
+addons/scene_node_path/ -export-ignore
+addons/scene_node_path/** -export-ignore
