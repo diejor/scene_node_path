@@ -16,4 +16,7 @@ icon.svg.import export-ignore
 icon.svg export-ignore
 README.md export-ignore
 LICENSE export-ignore
+.jj/ export-ignore
+.gitignore export-ignore
+.gitattributes export-ignore
 # Note: Keep the LICENSE and README *inside* the addon folder if you want them in the download!
