@@ -1,4 +1,7 @@
 # SceneNodePath for Godot 4
+[![CI](https://github.com/diejor/scene_node_path/actions/workflows/parity_ci.yml/badge.svg)](https://github.com/diejor/scene_node_path/actions/workflows/parity_ci.yml)
+[![Godot v4.x](https://img.shields.io/badge/Godot-v4.x-blue?logo=godot-engine&logoColor=white)](https://godotengine.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **SceneNodePath** provides a bulletproof way to reference and instantiate specific Nodes residing within external `PackedScene` files.
 

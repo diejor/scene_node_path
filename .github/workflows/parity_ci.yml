@@ -1,4 +1,4 @@
-name: Cross-Language Parity CI
+name: GDUnit CI
 
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   unit-test:
-    name: GdUnit4 Parity Tests
+    name: GdUnit4 Tests
     runs-on: ubuntu-22.04
     timeout-minutes: 10
     permissions:
@@ -47,4 +47,4 @@ jobs:
           paths: |
             res://addons/scene_node_path/tests/
           timeout: 5
-          report-name: parity_test_report.xml
+          report-name: test_report.xml
