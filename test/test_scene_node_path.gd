@@ -49,6 +49,9 @@ func _create_parsed_paths(formatted_string: String) -> Array[Object]:
 func test_init_parsing(formatted_string: String, expected_scene: String, expected_node: String, test_parameters := [
 	["res://fake.tscn::Player", "res://fake.tscn", "Player"],
 	["uid://fake_uid::Level/Boss", "uid://fake_uid", "Level/Boss"],
+	["res://test/mock_player.tscn::Hitbox", "uid://cskn5w06l6wjy", "Hitbox"], # Should convert existing path to UID
+	["res://not_real.tscn::Node", "res://not_real.tscn", "Node"], # Should keep non-existent path as is
+	["uid://cskn5w06l6wjy::Hitbox", "uid://cskn5w06l6wjy", "Hitbox"], # Should keep raw UID as is
 ]) -> void:
 	for path in _create_parsed_paths(formatted_string):
 		var lang := _get_lang(path)

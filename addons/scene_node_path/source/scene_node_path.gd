@@ -1,3 +1,4 @@
+@icon("uid://ntsmds3f8a11")
 @tool
 class_name SceneNodePath
 extends Resource
@@ -62,17 +63,22 @@ func _init(formatted_path: String = "") -> void:
 	if not formatted_path.is_empty():
 		parse(formatted_path)
 
-## Parses a formatted string (e.g., "scene_path::node_path") and assigns the values.
+## Parses a formatted string (e.g., [code]scene_path::node_path[/code]) and assigns the values.
 func parse(formatted_path: String) -> void:
 	assert(formatted_path.contains("::"), "SceneNodePath: Invalid string format.")
 	var parts := formatted_path.split("::", true, 1)
 
 	node_path = parts[1]
-
 	var raw_scene: String = parts[0]
-	if raw_scene.begins_with("res://") and ResourceLoader.exists(raw_scene):
-		var uid: int = ResourceLoader.get_resource_uid(raw_scene)
-		scene_path = ResourceUID.id_to_text(uid) if uid != ResourceUID.INVALID_ID else raw_scene
+
+	if raw_scene.begins_with("res://"):
+		if ResourceLoader.exists(raw_scene):
+			var uid: int = ResourceLoader.get_resource_uid(raw_scene)
+			scene_path = ResourceUID.id_to_text(uid) if uid != ResourceUID.INVALID_ID else raw_scene
+		else:
+			scene_path = raw_scene
+	elif raw_scene.begins_with("uid://"):
+		scene_path = raw_scene
 	else:
 		scene_path = raw_scene
 
@@ -94,31 +100,30 @@ func is_valid() -> bool:
 ##
 ## [br][br][b]Note:[/b] This method does [i]not[/i] add the nodes to the [SceneTree].
 ## You are responsible for adding [member Result.root] to the tree and managing its lifecycle.
-func instantiate() -> Result:
-	var target_node := _instantiate_and_get()
+func instantiate(edit_state: PackedScene.GenEditState = 0) -> Result:
+	var target_node := _instantiate_and_get(edit_state)
 	if not target_node: return null
-	
+
 	return Result.new(_get_orphan_root(target_node), target_node)
 
 
-## Identical to [method instantiate], but safely returns [code]null[/code] on 
+## Identical to [method instantiate], but safely returns [code]null[/code] on
 ## failure without asserting.
-func instantiate_or_null() -> Result:
-	var target_node := _instantiate_and_get_or_null()
+func instantiate_or_null(edit_state: PackedScene.GenEditState = 0) -> Result:
+	var target_node := _instantiate_and_get_or_null(edit_state)
 	if not target_node: return null
-	
+
 	return Result.new(_get_orphan_root(target_node), target_node)
 
 
 ## A container for the results of a [method SceneNodePath.instantiate] call.
 class Result extends RefCounted:
-	## The root node of the newly instantiated scene hierarchy. 
+	## The root node of the newly instantiated scene hierarchy.
 	## Use this to add the scene to the [SceneTree] or to free it later.
 	var root: Node
-	
 	## The specific node referenced by the [member SceneNodePath.node_path].
 	var node: Node
-	
+
 	func _init(p_root: Node, p_node: Node) -> void:
 		root = p_root
 		node = p_node
@@ -129,14 +134,15 @@ class Result extends RefCounted:
 ## [br][br]
 ## [b]Warning:[/b] The extracted node is surgically removed from its scene tree via [method Node.remove_child]. 
 ## It loses its original siblings and parent context.
-func extract() -> Node:
-	return _perform_extraction(_instantiate_and_get())
+func extract(edit_state: PackedScene.GenEditState = 0) -> Node:
+	return _perform_extraction(_instantiate_and_get(edit_state))
 
 
 ## Identical to [method extract], but safely returns [code]null[/code] on failure.
-func extract_or_null() -> Node:
-	var target := _instantiate_and_get_or_null()
+func extract_or_null(edit_state: PackedScene.GenEditState = 0) -> Node:
+	var target := _instantiate_and_get_or_null(edit_state)
 	return _perform_extraction(target) if target else null
+
 
 
 ## Returns the absolute file path and node path combined (e.g., [code]"res://scene.tscn::Node"[/code]).
@@ -209,13 +215,7 @@ func _to_string() -> String:
 	return "<SceneNodePath: %s>" % as_path()
 
 
-## Loads a [SceneNodePath] from disk, instantiates its scene, and returns the target [Node].
-static func load_instantiate_and_get(tres_path: String) -> Node:
-	var res = load(tres_path) as SceneNodePath
-	assert(res, "SceneNodePath: Resource at %s is invalid or missing." % tres_path)
-	return res.instantiate_and_get()
-
-func _instantiate_and_get() -> Node:
+func _instantiate_and_get(edit_state: PackedScene.GenEditState = 0) -> Node:
 	assert(not scene_path.is_empty(), "SceneNodePath: scene_path is empty.")
 	assert(not node_path.is_empty(), "SceneNodePath: node_path is empty.")
 
@@ -225,7 +225,7 @@ func _instantiate_and_get() -> Node:
 	var packed_scene: PackedScene = load(real_path)
 	assert(packed_scene, "SceneNodePath: Failed to load scene at %s" % real_path)
 
-	var scene_instance: Node = packed_scene.instantiate()
+	var scene_instance: Node = packed_scene.instantiate(edit_state)
 	var target_path := NodePath(node_path)
 	var target_node: Node
 	
@@ -242,7 +242,7 @@ func _instantiate_and_get() -> Node:
 	return target_node
 
 
-func _instantiate_and_get_or_null() -> Node:
+func _instantiate_and_get_or_null(edit_state: PackedScene.GenEditState = 0) -> Node:
 	if not is_valid():
 		return null
 
@@ -254,7 +254,7 @@ func _instantiate_and_get_or_null() -> Node:
 	if not packed_scene:
 		return null
 
-	var scene_instance: Node = packed_scene.instantiate()
+	var scene_instance: Node = packed_scene.instantiate(edit_state)
 	var target_path := NodePath(node_path)
 	var target_node: Node
 	

@@ -68,12 +68,23 @@ public partial class SceneNodePathCS : Resource
 		string[] parts = formattedPath.Split("::", 2, System.StringSplitOptions.None);
 
 		NodePath = parts[1];
-
 		string rawScene = parts[0];
-		if (rawScene.StartsWith("res://") && ResourceLoader.Exists(rawScene))
+
+		if (rawScene.StartsWith("res://"))
 		{
-			long uid = ResourceLoader.GetResourceUid(rawScene);
-			ScenePath = uid != ResourceUid.InvalidId ? ResourceUid.IdToText(uid) : rawScene;
+			if (ResourceLoader.Exists(rawScene))
+			{
+				long uid = ResourceLoader.GetResourceUid(rawScene);
+				ScenePath = uid != ResourceUid.InvalidId ? ResourceUid.IdToText(uid) : rawScene;
+			}
+			else
+			{
+				ScenePath = rawScene;
+			}
+		}
+		else if (rawScene.StartsWith("uid://"))
+		{
+			ScenePath = rawScene;
 		}
 		else
 		{
@@ -113,9 +124,10 @@ public partial class SceneNodePathCS : Resource
 	/// <br/><br/><b>Note:</b> This method does <i>not</i> add the nodes to the SceneTree. 
 	/// You are responsible for adding <see cref="Result.Root"/> to the tree and managing its lifecycle.
 	/// </summary>
-	public Result Instantiate()
+	public Result Instantiate() => Instantiate(0);
+	public Result Instantiate(PackedScene.GenEditState editState)
 	{
-		Node targetNode = InstantiateAndGet();
+		Node targetNode = InstantiateAndGet(editState);
 		if (targetNode == null) return null;
 
 		return new Result(GetOrphanRoot(targetNode), targetNode);
@@ -125,9 +137,10 @@ public partial class SceneNodePathCS : Resource
 	/// Identical to <see cref="Instantiate"/>, but safely returns <c>null</c> on 
 	/// failure without asserting.
 	/// </summary>
-	public Result InstantiateOrNull()
+	public Result InstantiateOrNull() => InstantiateOrNull(0);
+	public Result InstantiateOrNull(PackedScene.GenEditState editState)
 	{
-		Node targetNode = InstantiateAndGetOrNull();
+		Node targetNode = InstantiateAndGetOrNull(editState);
 		if (targetNode == null) return null;
 
 		return new Result(GetOrphanRoot(targetNode), targetNode);
@@ -165,17 +178,19 @@ public partial class SceneNodePathCS : Resource
 	/// <b>Warning:</b> The extracted node is surgically removed from its scene tree via <see cref="Node.RemoveChild"/>. 
 	/// It loses its original siblings and parent context.
 	/// </summary>
-	public Node Extract()
+	public Node Extract() => Extract(0);
+	public Node Extract(PackedScene.GenEditState editState)
 	{
-		return PerformExtraction(InstantiateAndGet());
+		return PerformExtraction(InstantiateAndGet(editState));
 	}
 
 	/// <summary>
 	/// Identical to <see cref="Extract"/>, but safely returns <c>null</c> on failure.
 	/// </summary>
-	public Node ExtractOrNull()
+	public Node ExtractOrNull() => ExtractOrNull(0);
+	public Node ExtractOrNull(PackedScene.GenEditState editState)
 	{
-		Node target = InstantiateAndGetOrNull();
+		Node target = InstantiateAndGetOrNull(editState);
 		return target != null ? PerformExtraction(target) : null;
 	}
 
@@ -273,17 +288,8 @@ public partial class SceneNodePathCS : Resource
 		return $"<SceneNodePath: {AsPath()}>";
 	}
 
-	/// <summary>
-	/// Loads a <see cref="SceneNodePathCS"/> from disk, instantiates its scene, and returns the target <see cref="Node"/>.
-	/// </summary>
-	public static Node LoadInstantiateAndGet(string tresPath)
-	{
-		var res = ResourceLoader.Load<SceneNodePathCS>(tresPath);
-		System.Diagnostics.Debug.Assert(res != null, $"SceneNodePath: Resource at {tresPath} is invalid or missing.");
-		return res.InstantiateAndGet();
-	}
-
-	private Node InstantiateAndGet()
+	private Node InstantiateAndGet() => InstantiateAndGet(0);
+	private Node InstantiateAndGet(PackedScene.GenEditState editState)
 	{
 		System.Diagnostics.Debug.Assert(!string.IsNullOrEmpty(ScenePath), "SceneNodePath: scene_path is empty.");
 		System.Diagnostics.Debug.Assert(!string.IsNullOrEmpty(NodePath), "SceneNodePath: node_path is empty.");
@@ -294,7 +300,7 @@ public partial class SceneNodePathCS : Resource
 		var packedScene = ResourceLoader.Load<PackedScene>(realPath);
 		System.Diagnostics.Debug.Assert(packedScene != null, $"SceneNodePath: Failed to load scene at {realPath}");
 
-		Node sceneInstance = packedScene.Instantiate();
+		Node sceneInstance = packedScene.Instantiate(editState);
 		NodePath targetPath = new NodePath(NodePath);
 		Node targetNode;
 
@@ -317,7 +323,8 @@ public partial class SceneNodePathCS : Resource
 		return targetNode;
 	}
 
-	private Node InstantiateAndGetOrNull()
+	private Node InstantiateAndGetOrNull() => InstantiateAndGetOrNull(0);
+	private Node InstantiateAndGetOrNull(PackedScene.GenEditState editState)
 	{
 		if (!IsValid()) return null;
 
@@ -327,7 +334,7 @@ public partial class SceneNodePathCS : Resource
 		var packedScene = ResourceLoader.Load<PackedScene>(realPath);
 		if (packedScene == null) return null;
 
-		Node sceneInstance = packedScene.Instantiate();
+		Node sceneInstance = packedScene.Instantiate(editState);
 		NodePath targetPath = new NodePath(NodePath);
 		Node targetNode;
 

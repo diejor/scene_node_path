@@ -25,6 +25,11 @@ jobs:
       pull-requests: write
       statuses: write
 
+    strategy:
+      fail-fast: false
+      matrix:
+        godot-version: ['4.0', '4.1', '4.2', '4.3', '4.4', '4.5', '4.6']
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -42,7 +47,7 @@ jobs:
       - name: Run GdUnit4 Tests
         uses: MikeSchulze/gdUnit4-action@v1
         with:
-          godot-version: '4.6' 
+          godot-version: ${{ matrix.godot-version }}
           godot-net: true
           paths: |
             res://addons/scene_node_path/tests/
