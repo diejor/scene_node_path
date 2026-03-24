@@ -40,12 +40,7 @@ func _ready() -> void:
 func setup_and_open(scene_path: String, config: FilterConfig) -> void:
 	allowed_class_lbl.text = config.target_class
 	
-	if config.icon:
-		allowed_icon.texture = config.icon
-	elif Engine.is_editor_hint():
-		allowed_icon.texture = EditorInterface.get_editor_theme().get_icon(config.target_class, "EditorIcons")
-	else:
-		allowed_icon.texture = null
+	allowed_icon.texture = EditorIconUtils.resolve_icon(config.icon, config.custom_script, config.target_class)
 	
 	node_tree.configure(config)
 	

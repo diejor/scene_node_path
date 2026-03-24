@@ -42,7 +42,7 @@ func _add_node_to_tree(node: Node, parent_item: TreeItem, filter: String, show_a
 	
 	var final_path: String = _get_robust_path_string(root_scene_node, node)
 	item.set_metadata(0, {"path": final_path})
-	item.set_icon(0, _get_class_icon(node.get_class()))
+	item.set_icon(0, _get_node_icon(node))
 		
 	var is_allowed: bool = _is_node_allowed(node)
 	if not is_allowed:
@@ -67,15 +67,10 @@ func _add_node_to_tree(node: Node, parent_item: TreeItem, filter: String, show_a
 		
 	return item
 
-func _get_class_icon(class_name_str: String) -> Texture2D:
-	if Engine.is_editor_hint() and EditorInterface.get_editor_theme().has_icon(class_name_str, "EditorIcons"):
-		return EditorInterface.get_editor_theme().get_icon(class_name_str, "EditorIcons")
-	if custom_icon:
-		return custom_icon
+func _get_node_icon(node: Node) -> Texture2D:
+	var passed_icon: Texture2D = custom_icon if _is_node_allowed(node) else null
 	
-	if Engine.is_editor_hint():
-		return EditorInterface.get_editor_theme().get_icon("Node", "EditorIcons")
-	return null
+	return EditorIconUtils.resolve_icon(passed_icon, node.get_script(), node.get_class())
 
 func _get_robust_path_string(root: Node, target: Node) -> String:
 	if root == target: return "."
