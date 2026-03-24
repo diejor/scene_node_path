@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        godot-version: ['4.0', '4.1', '4.2', '4.3', '4.4', '4.5', '4.6']
+        godot-version: ['4.5.2', '4.6.1']
 
     steps:
       - name: Checkout Repository
@@ -48,7 +48,6 @@ jobs:
         uses: MikeSchulze/gdUnit4-action@v1
         with:
           godot-version: ${{ matrix.godot-version }}
-          gdunit4-version: 'v4.3.1'
           godot-net: true
           paths: |
             res://test/
