@@ -53,3 +53,4 @@ jobs:
             res://test/
           timeout: 5
           report-name: test_report_${{ matrix.godot-version }}.xml
+          report-type: 'java-junit'
