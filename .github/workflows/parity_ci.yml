@@ -1,4 +1,4 @@
-name: GDUnit CI
+name: CI
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        godot-version: ['4.5.2', '4.6.1']
+        godot-version: ['4.5', '4.6']
 
     steps:
       - name: Checkout Repository
@@ -45,7 +45,7 @@ jobs:
         run: dotnet build
 
       - name: Run GdUnit4 Tests
-        uses: MikeSchulze/gdUnit4-action@v1
+        uses: MikeSchulze/gdUnit4-action@v1.0.2
         with:
           godot-version: ${{ matrix.godot-version }}
           godot-net: true
