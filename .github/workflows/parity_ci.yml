@@ -48,8 +48,9 @@ jobs:
         uses: MikeSchulze/gdUnit4-action@v1
         with:
           godot-version: ${{ matrix.godot-version }}
+          gdunit4-version: 'v4.3.1'
           godot-net: true
           paths: |
-            res://addons/scene_node_path/tests/
+            res://test/
           timeout: 5
-          report-name: test_report.xml
+          report-name: test_report_${{ matrix.godot-version }}.xml
